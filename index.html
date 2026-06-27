@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="description" content="お店に合った最もお得なクレジットカードを瞬時に検索。還元率を一覧比較。">
+<title>クレカ還元チェッカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --surface2: #F2F2EF;
+  --border: #E4E4E0; --border-strong: #C8C8C2;
+  --text: #1A1A18; --text2: #5A5A56; --text3: #9A9A94;
+  --accent: #1C6EF2; --accent-bg: #EBF1FE; --accent-text: #1249B0;
+  --gold: #B45309; --gold-bg: #FEF3C7;
+  --danger: #DC2626; --danger-bg: #FEF2F2;
+  --radius: 10px; --radius-lg: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+body { font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; -webkit-tap-highlight-color:transparent; }
+.app-shell { max-width:480px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:var(--bg); }
+
+/* Header */
+.app-header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 16px 12px; position:sticky; top:0; z-index:10; }
+.app-header-inner { display:flex; align-items:center; gap:10px; }
+.logo-mark { width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.logo-mark svg { width:20px; height:20px; fill:white; }
+.header-titles { flex:1; }
+.header-title { font-size:15px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
+.header-sub { font-size:11px; color:var(--text3); margin-top:1px; }
+.admin-toggle { padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); font-size:12px; font-family:inherit; cursor:pointer; font-weight:500; display:flex; align-items:center; gap:5px; }
+.admin-toggle svg { width:14px; height:14px; }
+.admin-toggle.active { background:var(--accent-bg); color:var(--accent-text); border-color:#A8C4FA; }
+
+/* Tabs */
+.tab-bar { display:flex; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:63px; z-index:9; }
+.tab { flex:1; padding:11px 0 9px; text-align:center; font-size:11px; font-weight:500; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; transition:color 0.15s,border-color 0.15s; font-family:inherit; background:none; border-left:none; border-right:none; border-top:none; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.tab svg { width:18px; height:18px; }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Screens */
+.screen { display:none; flex:1; padding:16px; }
+.screen.active { display:block; }
+
+/* Search */
+.search-box { position:relative; margin-bottom:12px; }
+.search-box svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--text3); pointer-events:none; }
+.search-box input { width:100%; padding:12px 14px 12px 40px; border:1.5px solid var(--border); border-radius:var(--radius-lg); font-size:16px; font-family:inherit; color:var(--text); background:var(--surface); outline:none; transition:border-color 0.15s; -webkit-appearance:none; }
+.search-box input:focus { border-color:var(--accent); }
+.search-box input::placeholder { color:var(--text3); }
+.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.filter-chip { padding:5px 11px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid var(--border); background:var(--surface); color:var(--text2); cursor:pointer; transition:all 0.12s; font-family:inherit; white-space:nowrap; }
+.filter-chip.on { background:var(--accent-bg); color:var(--accent-text); border-color:#A8C4FA; }
+.suggestions-list { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:12px; box-shadow:var(--shadow); }
+.sug-item { padding:12px 16px; font-size:14px; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.sug-item:last-child { border-bottom:none; }
+.sug-item:active { background:var(--surface2); }
+.sug-item svg { width:15px; height:15px; color:var(--text3); flex-shrink:0; }
+.no-card-hint { text-align:center; padding:40px 20px; color:var(--text2); font-size:14px; line-height:1.7; }
+.no-card-hint svg { width:40px; height:40px; color:var(--text3); margin-bottom:12px; display:block; margin-left:auto; margin-right:auto; }
+.result-label { font-size:13px; color:var(--text2); margin-bottom:10px; }
+.result-label strong { color:var(--text); }
+.result-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; display:flex; align-items:center; gap:14px; margin-bottom:8px; box-shadow:var(--shadow); }
+.result-card.top { border-color:var(--accent); border-width:1.5px; }
+.rank { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.rank-1 { background:var(--gold-bg); color:var(--gold); }
+.rank-2 { background:#F1F5F9; color:#475569; }
+.rank-n { background:var(--surface2); color:var(--text3); font-size:11px; }
+.result-info { flex:1; min-width:0; }
+.result-name { font-size:14px; font-weight:500; color:var(--text); }
+.result-cond { font-size:11px; color:var(--text2); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.result-cond.normal { color:var(--text3); }
+.result-rate { font-size:22px; font-weight:700; color:var(--accent); flex-shrink:0; line-height:1; }
+.result-rate small { font-size:12px; font-weight:500; }
+.no-match-note { font-size:12px; color:var(--text3); background:var(--surface2); border-radius:8px; padding:8px 12px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.no-match-note svg { width:13px; height:13px; flex-shrink:0; }
+
+/* My Cards */
+.card-list-item { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:7px; cursor:pointer; transition:border-color 0.12s; }
+.card-list-item.selected { border-color:var(--accent); background:var(--accent-bg); }
+.check { width:22px; height:22px; border-radius:6px; border:1.5px solid var(--border-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.12s; }
+.card-list-item.selected .check { background:var(--accent); border-color:var(--accent); }
+.check svg { width:13px; height:13px; color:white; display:none; }
+.card-list-item.selected .check svg { display:block; }
+.card-item-name { font-size:14px; font-weight:500; color:var(--text); }
+.card-item-rate { font-size:12px; color:var(--text2); margin-top:2px; }
+
+/* Password Screen */
+.pw-screen { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:50; align-items:center; justify-content:center; }
+.pw-screen.active { display:flex; }
+.pw-box { background:var(--surface); border-radius:var(--radius-lg); padding:28px 24px; width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
+.pw-box h2 { font-size:16px; font-weight:700; margin-bottom:6px; }
+.pw-box p { font-size:13px; color:var(--text2); margin-bottom:18px; }
+.pw-box input { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-size:15px; font-family:inherit; outline:none; margin-bottom:12px; }
+.pw-box input:focus { border-color:var(--accent); }
+.pw-error { font-size:12px; color:var(--danger); margin-bottom:10px; display:none; }
+.pw-btns { display:flex; gap:8px; }
+
+/* Admin */
+.admin-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:14px; }
+.section-title { font-size:12px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:12px; }
+.field { margin-bottom:8px; }
+.field label { font-size:12px; color:var(--text2); display:block; margin-bottom:4px; }
+.field input, .field select { width:100%; padding:9px 12px; font-size:14px; font-family:inherit; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface2); color:var(--text); outline:none; -webkit-appearance:none; appearance:none; }
+.field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239A9A94'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; background-size:18px; padding-right:32px; }
+.field input:focus, .field select:focus { border-color:var(--accent); }
+.row2 { display:grid; grid-template-columns:1fr 120px; gap:8px; }
+.btn { padding:10px 16px; border-radius:var(--radius); font-size:14px; font-weight:500; font-family:inherit; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text); display:inline-flex; align-items:center; gap:6px; transition:background 0.12s; }
+.btn:active { opacity:0.85; }
+.btn-primary { background:var(--accent); color:white; border-color:var(--accent); }
+.btn-full { width:100%; justify-content:center; }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-danger { color:var(--danger); border-color:#FECACA; background:var(--danger-bg); }
+.btn svg { width:15px; height:15px; }
+.btn-sm svg { width:13px; height:13px; }
+.data-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.data-item:last-child { border-bottom:none; }
+.data-item-info { flex:1; min-width:0; }
+.data-item-name { font-size:13px; font-weight:500; color:var(--text); }
+.data-item-sub { font-size:11px; color:var(--text2); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.filter-input-wrap { position:relative; margin-bottom:10px; }
+.filter-input-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--text3); pointer-events:none; }
+.filter-input-wrap input { padding:8px 10px 8px 30px; font-size:13px; }
+.empty-state { text-align:center; padding:48px 20px; color:var(--text2); }
+.empty-state svg { width:36px; height:36px; color:var(--text3); margin-bottom:10px; display:block; margin-left:auto; margin-right:auto; }
+.empty-state p { font-size:13px; line-height:1.6; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#1A1A18; color:#fff; padding:9px 18px; border-radius:24px; font-size:13px; font-weight:500; transition:transform 0.25s cubic-bezier(.34,1.56,.64,1); z-index:100; white-space:nowrap; pointer-events:none; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+@media (hover:hover) {
+  .sug-item:hover { background:var(--surface2); }
+  .card-list-item:hover { border-color:var(--border-strong); }
+  .btn:not(.btn-primary):hover { background:var(--surface); }
+  .btn-primary:hover { filter:brightness(1.08); }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h16a2 2 0 012 2v2H2V6zM2 10h20v8a2 2 0 01-2 2H4a2 2 0 01-2-2v-8zm3 3a1 1 0 000 2h4a1 1 0 100-2H5z"/></svg>
+      </div>
+      <div class="header-titles">
+        <div class="header-title">クレカ還元チェッカー</div>
+        <div class="header-sub">お店に合ったカードをすぐ検索</div>
+      </div>
+      <button class="admin-toggle" id="admin-toggle-btn" onclick="openPasswordScreen()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        管理
+      </button>
+    </div>
+  </header>
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar" id="tab-bar">
+    <button class="tab active" onclick="switchTab('search')" id="tab-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      検索
+    </button>
+    <button class="tab" onclick="switchTab('cards')" id="tab-cards">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      マイカード
+    </button>
+  </nav>
+
+  <!-- Search Screen -->
+  <div class="screen active" id="screen-search">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="search" id="search-input" placeholder="セブンイレブン、マクドナルド…" autocomplete="off" oninput="onSearch(this.value)">
+    </div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div id="suggestions-list"></div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- My Cards Screen -->
+  <div class="screen" id="screen-cards">
+    <div id="my-cards-content"></div>
+  </div>
+
+  <!-- Admin Screen -->
+  <div class="screen" id="screen-admin">
+    <div class="admin-section">
+      <div class="section-title">カードを追加</div>
+      <div class="row2">
+        <div class="field"><label>カード名</label><input type="text" id="ac-name" placeholder="例：PayPayカード"></div>
+        <div class="field"><label>通常還元率 (%)</label><input type="number" id="ac-rate" placeholder="1.0" step="0.1" min="0" max="100"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addCard()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        カードを追加
+      </button>
+    </div>
+
+    <div class="admin-section">
+      <div class="section-title">特化店舗データを追加</div>
+      <div class="field"><label>店舗名</label><input type="text" id="as-store" placeholder="例：ファミリーマート"></div>
+      <div class="row2">
+        <div class="field"><label>カード</label><select id="as-card"></select></div>
+        <div class="field"><label>還元率 (%)</label><input type="number" id="as-rate" placeholder="5.0" step="0.1" min="0" max="100"></div>
+      </div>
+      <div class="field"><label>条件（任意）</label><input type="text" id="as-cond" placeholder="例：スマホタッチ決済"></div>
+      <button class="btn btn-primary btn-full" onclick="addStoreData()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        店舗データを追加
+      </button>
+    </div>
+
+    <div class="admin-section">
+      <div class="section-title">登録済みカード</div>
+      <div id="admin-card-list"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="section-title">特化店舗データ</div>
+      <div class="filter-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h18M7 8h10M11 12h2"/></svg>
+        <input type="text" placeholder="店舗名で絞り込み" id="store-filter" oninput="renderAdminStores()">
+      </div>
+      <div id="admin-store-list"></div>
+    </div>
+
+    <div style="text-align:center; padding:8px 0 24px;">
+      <button class="btn" onclick="closeAdmin()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        管理画面を閉じる
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Password Modal -->
+<div class="pw-screen" id="pw-screen">
+  <div class="pw-box">
+    <h2>🔒 管理画面</h2>
+    <p>パスワードを入力してください</p>
+    <input type="password" id="pw-input" placeholder="パスワード" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-error" id="pw-error">パスワードが違います</div>
+    <div class="pw-btns">
+      <button class="btn btn-full" onclick="closePwScreen()">キャンセル</button>
+      <button class="btn btn-primary btn-full" onclick="checkPassword()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Password ──────────────────────────────────────────────────
+const PW_HASH = '4e9b4f6a8c2d1e3f7a0b5c9d2e4f6a8b3c1d5e7f9a2b4c6d8e0f1a3b5c7d9e1';
+
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  }
+  return Math.abs(h).toString(16).padStart(8,'0');
+}
+
+const CORRECT = hashString('Killester05');
+let adminUnlocked = sessionStorage.getItem('admin_ok') === CORRECT;
+
+function openPasswordScreen() {
+  if (adminUnlocked) { openAdmin(); return; }
+  document.getElementById('pw-screen').classList.add('active');
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').style.display = 'none';
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+
+function closePwScreen() {
+  document.getElementById('pw-screen').classList.remove('active');
+}
+
+function checkPassword() {
+  const val = document.getElementById('pw-input').value;
+  if (hashString(val) === CORRECT) {
+    adminUnlocked = true;
+    sessionStorage.setItem('admin_ok', CORRECT);
+    closePwScreen();
+    openAdmin();
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function openAdmin() {
+  document.getElementById('screen-search').classList.remove('active');
+  document.getElementById('screen-cards').classList.remove('active');
+  document.getElementById('screen-admin').classList.add('active');
+  document.getElementById('tab-bar').style.display = 'none';
+  document.getElementById('admin-toggle-btn').classList.add('active');
+  renderAdmin();
+}
+
+function closeAdmin() {
+  document.getElementById('screen-admin').classList.remove('active');
+  document.getElementById('tab-bar').style.display = '';
+  document.getElementById('admin-toggle-btn').classList.remove('active');
+  switchTab(currentTab);
+}
+
+// ── Initial Data ──────────────────────────────────────────────
+const INIT_CARDS = {
+  "JCB CARD W":1.0,"三井住友カード":0.5,"楽天カード":1.0,
+  "JREカード":0.5,"エポスゴールドカード":0.5,"JALカード navi":1.0,
+  "ビックカメラスイカカード":0.5,"アメックスゴールドカード":0.5,
+  "ANAカード":1.0,"三菱UFJカード":0.5,"ライフカード":0.75
+};
+
+const INIT_STORES = [
+  {store:"すき家",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"ガスト",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"吉野家",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"スターバックス",card:"JCB CARD W",rate:10.5,cond:"モバイルオーダー"},
+  {store:"マクドナルド",card:"JCB CARD W",rate:10.5,cond:"モバイルオーダー"},
+  {store:"サンマルクカフェ",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"バーミヤン",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"ジョナサン",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"ドミノピザ",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"ディズニープラス",card:"JCB CARD W",rate:10.5,cond:""},
+  {store:"アゴダ",card:"JCB CARD W",rate:3.5,cond:"JCBサイト経由"},
+  {store:"洋服の青山",card:"JCB CARD W",rate:3.0,cond:""},
+  {store:"AOKI",card:"JCB CARD W",rate:3.0,cond:""},
+  {store:"アマゾン",card:"JCB CARD W",rate:2.0,cond:""},
+  {store:"セブンイレブン",card:"JCB CARD W",rate:2.0,cond:""},
+  {store:"Uber Eats",card:"JCB CARD W",rate:2.0,cond:""},
+  {store:"高島屋",card:"JCB CARD W",rate:2.0,cond:""},
+  {store:"ウエルシア",card:"JCB CARD W",rate:1.5,cond:""},
+  {store:"メルカリ",card:"JCB CARD W",rate:1.5,cond:""},
+  {store:"ビックカメラ",card:"JCB CARD W",rate:1.5,cond:""},
+  {store:"セブンイレブン",card:"三井住友カード",rate:10.0,cond:"スマホタッチ決済"},
+  {store:"資生堂オンラインストア",card:"三井住友カード",rate:9.5,cond:""},
+  {store:"セイコーマート",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ポプラ",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ミニストップ",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ローソン",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"サイゼリヤ",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ガスト",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"バーミヤン",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"しゃぶ葉",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ジョナサン",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"夢庵",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"すかいらーく",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"はま寿司",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ココス",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ドトール",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"エクセルシオールカフェ",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"かっぱ寿司",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"マクドナルド",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"モスバーガー",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"ケンタッキー",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"吉野家",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"すき家",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"スターバックス",card:"三井住友カード",rate:7.0,cond:"モバイルオーダーまたはスマホタッチ決済"},
+  {store:"エクセルシオール",card:"三井住友カード",rate:7.0,cond:"スマホタッチ決済"},
+  {store:"ファミリーマート",card:"楽天カード",rate:6.0,cond:"楽天ペイチャージ＋ポイント提示"},
+  {store:"楽天モバイル",card:"楽天カード",rate:6.0,cond:"楽天ポイント"},
+  {store:"アトレ",card:"JREカード",rate:3.5,cond:""},
+  {store:"ニュウマン",card:"JREカード",rate:3.5,cond:""},
+  {store:"ルミネ",card:"JREカード",rate:3.5,cond:""},
+  {store:"Suicaチャージ",card:"JREカード",rate:1.5,cond:"オートチャージも可"},
+  {store:"アキュア",card:"JREカード",rate:1.0,cond:"エキナカ自販機"},
+  {store:"TPP",card:"JREカード",rate:3.5,cond:""},
+  {store:"アゴダ",card:"エポスゴールドカード",rate:3.5,cond:"エポスポイントUPサイト経由"},
+  {store:"ビックカメラ",card:"ビックカメラスイカカード",rate:11.5,cond:"このカードでチャージしたスイカで支払う"},
+  {store:"アトレ",card:"ビックカメラスイカカード",rate:3.5,cond:""},
+  {store:"ニュウマン",card:"ビックカメラスイカカード",rate:3.5,cond:""},
+  {store:"ルミネ",card:"ビックカメラスイカカード",rate:3.5,cond:""},
+  {store:"Suicaチャージ",card:"ビックカメラスイカカード",rate:1.5,cond:"オートチャージも可"},
+  {store:"アキュア",card:"ビックカメラスイカカード",rate:1.0,cond:"エキナカ自販機"},
+  {store:"TPP",card:"ビックカメラスイカカード",rate:3.5,cond:""},
+  {store:"セブンイレブン",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"ローソン",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"コカコーラ自販機",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"スシロー",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"くら寿司",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"松屋",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"ゼッテリア",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"ピザハット",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"オーケー",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"肉のハナマサ",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"東急ストア",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"オオゼキ",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"東武ストア",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"松のや",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"},
+  {store:"アオキスーパー",card:"三菱UFJカード",rate:13.0,cond:"条件次第で7〜20%変動（平均値）"}
+];
+
+// ── State ──────────────────────────────────────────────────────
+let cards = {};
+let stores = [];
+let myCards = [];
+let searchTimer = null;
+let currentTab = 'search';
+
+// ── Storage ────────────────────────────────────────────────────
+function loadData() {
+  try { cards = JSON.parse(localStorage.getItem('kc_cards') || 'null') || {...INIT_CARDS}; } catch(e) { cards = {...INIT_CARDS}; }
+  try { stores = JSON.parse(localStorage.getItem('kc_stores') || 'null') || [...INIT_STORES]; } catch(e) { stores = [...INIT_STORES]; }
+  try { myCards = JSON.parse(localStorage.getItem('kc_my') || 'null') || []; } catch(e) { myCards = []; }
+  renderAll();
+}
+
+function saveData() {
+  localStorage.setItem('kc_cards', JSON.stringify(cards));
+  localStorage.setItem('kc_stores', JSON.stringify(stores));
+  localStorage.setItem('kc_my', JSON.stringify(myCards));
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function switchTab(id) {
+  ['search','cards'].forEach(t => {
+    document.getElementById('screen-'+t).classList.toggle('active', t===id);
+    document.getElementById('tab-'+t).classList.toggle('active', t===id);
+  });
+  document.getElementById('screen-admin').classList.remove('active');
+  document.getElementById('tab-bar').style.display = '';
+  document.getElementById('admin-toggle-btn').classList.remove('active');
+  currentTab = id;
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function renderAll() {
+  renderFilterBar();
+  renderMyCards();
+  renderAdminCardSelect();
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = Object.keys(cards).map(name => {
+    const on = myCards.includes(name);
+    return `<button class="filter-chip ${on?'on':''}" onclick="toggleMyCard('${esc(name)}')">${esc(name)}</button>`;
+  }).join('');
+}
+
+function renderMyCards() {
+  const el = document.getElementById('my-cards-content');
+  const all = Object.keys(cards);
+  if (!all.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><p>カードがまだ登録されていません。<br>管理画面から追加してください。</p></div>`;
+    return;
+  }
+  el.innerHTML = all.map(name => {
+    const on = myCards.includes(name);
+    return `<div class="card-list-item ${on?'selected':''}" onclick="toggleMyCard('${esc(name)}')">
+      <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div>
+        <div class="card-item-name">${esc(name)}</div>
+        <div class="card-item-rate">通常還元率 ${cards[name].toFixed(2)}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdmin() {
+  renderAdminCards();
+  renderAdminStores();
+  renderAdminCardSelect();
+}
+
+function renderAdminCards() {
+  const el = document.getElementById('admin-card-list');
+  const all = Object.keys(cards);
+  if (!all.length) { el.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px;">カードがありません</div>'; return; }
+  el.innerHTML = all.map(name => `
+    <div class="data-item">
+      <div class="data-item-info">
+        <div class="data-item-name">${esc(name)}</div>
+        <div class="data-item-sub">通常還元率 ${cards[name].toFixed(2)}%</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteCard('${esc(name)}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>削除
+      </button>
+    </div>`).join('');
+}
+
+function renderAdminStores() {
+  const el = document.getElementById('admin-store-list');
+  const q = (document.getElementById('store-filter')||{}).value || '';
+  const list = q ? stores.filter(r => r.store.includes(q) || r.card.includes(q)) : stores;
+  if (!list.length) { el.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px;">データがありません</div>'; return; }
+  el.innerHTML = list.map(r => {
+    const idx = stores.indexOf(r);
+    return `<div class="data-item">
+      <div class="data-item-info">
+        <div class="data-item-name">${esc(r.store)}</div>
+        <div class="data-item-sub">${esc(r.card)} · ${r.rate.toFixed(1)}%${r.cond?' · '+esc(r.cond):''}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteStore(${idx})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>削除
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminCardSelect() {
+  const sel = document.getElementById('as-card');
+  if (!sel) return;
+  sel.innerHTML = Object.keys(cards).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+}
+
+// ── Toggle My Card ─────────────────────────────────────────────
+function toggleMyCard(name) {
+  if (myCards.includes(name)) myCards = myCards.filter(c => c !== name);
+  else myCards.push(name);
+  saveData(); renderFilterBar(); renderMyCards();
+  const q = document.getElementById('search-input').value.trim();
+  if (q) showResults(q);
+}
+
+// ── Add / Delete ───────────────────────────────────────────────
+function addCard() {
+  const name = document.getElementById('ac-name').value.trim();
+  const rate = parseFloat(document.getElementById('ac-rate').value);
+  if (!name) { toast('カード名を入力してください'); return; }
+  if (isNaN(rate) || rate < 0) { toast('正しい還元率を入力してください'); return; }
+  if (cards[name] !== undefined) { toast('同じ名前のカードがすでにあります'); return; }
+  cards[name] = rate;
+  document.getElementById('ac-name').value = '';
+  document.getElementById('ac-rate').value = '';
+  saveData(); renderAll(); renderAdmin();
+  toast(`「${name}」を追加しました`);
+}
+
+function deleteCard(name) {
+  if (!confirm(`「${name}」とその特化データをすべて削除します。よろしいですか？`)) return;
+  delete cards[name];
+  myCards = myCards.filter(c => c !== name);
+  stores = stores.filter(r => r.card !== name);
+  saveData(); renderAll(); renderAdmin();
+  toast(`「${name}」を削除しました`);
+}
+
+function addStoreData() {
+  const store = document.getElementById('as-store').value.trim();
+  const card = document.getElementById('as-card').value;
+  const rate = parseFloat(document.getElementById('as-rate').value);
+  const cond = document.getElementById('as-cond').value.trim();
+  if (!store) { toast('店舗名を入力してください'); return; }
+  if (!card) { toast('カードを選択してください'); return; }
+  if (isNaN(rate) || rate <= 0) { toast('正しい還元率を入力してください'); return; }
+  stores.push({store, card, rate, cond});
+  document.getElementById('as-store').value = '';
+  document.getElementById('as-rate').value = '';
+  document.getElementById('as-cond').value = '';
+  saveData(); renderAdminStores();
+  toast(`「${store} × ${card}」を追加しました`);
+}
+
+function deleteStore(idx) {
+  stores.splice(idx, 1);
+  saveData(); renderAdminStores();
+  toast('削除しました');
+}
+
+// ── Search ─────────────────────────────────────────────────────
+function allStoreNames() {
+  return [...new Set(stores.map(r => r.store))].sort((a,b) => a.localeCompare(b,'ja'));
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimer);
+  const v = val.trim();
+  document.getElementById('suggestions-list').innerHTML = '';
+  document.getElementById('search-results').innerHTML = '';
+  if (!v) return;
+  searchTimer = setTimeout(() => {
+    const hits = allStoreNames().filter(s => s.includes(v));
+    if (hits.length === 1 && hits[0] === v) {
+      showResults(v);
+    } else if (hits.length) {
+      document.getElementById('suggestions-list').innerHTML =
+        `<div class="suggestions-list">${hits.slice(0,7).map(s =>
+          `<div class="sug-item" onclick="selectStore('${esc(s)}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${esc(s)}
+          </div>`).join('')}</div>`;
+    } else {
+      showResults(v);
+    }
+  }, 160);
+}
+
+function selectStore(name) {
+  document.getElementById('search-input').value = name;
+  document.getElementById('suggestions-list').innerHTML = '';
+  showResults(name);
+}
+
+function showResults(storeName) {
+  const el = document.getElementById('search-results');
+  if (!myCards.length) {
+    el.innerHTML = `<div class="no-card-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      <p>まず「マイカード」タブで<br>持っているカードを選んでください。</p>
+    </div>`;
+    return;
+  }
+  const rows = stores.filter(r => r.store === storeName);
+  const results = myCards.map(card => {
+    const match = rows.filter(r => r.card === card).sort((a,b) => b.rate - a.rate)[0];
+    return match
+      ? {card, rate:match.rate, cond:match.cond, special:true}
+      : {card, rate:cards[card]??0, cond:'', special:false};
+  }).sort((a,b) => b.rate - a.rate);
+
+  let html = '';
+  if (!rows.length) {
+    html += `<div class="no-match-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      「${esc(storeName)}」の特化データなし。通常還元率で比較しています。
+    </div>`;
+  } else {
+    html += `<div class="result-label">「<strong>${esc(storeName)}</strong>」のおすすめ順</div>`;
+  }
+  el.innerHTML = html;
+
+  results.forEach((r, i) => {
+    const rankCls = i===0?'rank-1':i===1?'rank-2':'rank-n';
+    const div = document.createElement('div');
+    div.className = 'result-card'+(i===0?' top':'');
+    div.innerHTML = `
+      <div class="rank ${rankCls}">${i+1}</div>
+      <div class="result-info">
+        <div class="result-name">${esc(r.card)}</div>
+        ${r.cond ? `<div class="result-cond">🔹 ${esc(r.cond)}</div>`
+                 : r.special ? '' : `<div class="result-cond normal">通常還元率</div>`}
+      </div>
+      <div class="result-rate">${r.rate.toFixed(1)}<small>%</small></div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── Utils ──────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+loadData();
+</script>
+</body>
+</html>
